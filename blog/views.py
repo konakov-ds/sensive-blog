@@ -64,9 +64,7 @@ def index(request):
     #     num_comments=Count('comments', distinct=True),
     # )
 
-    tags = Tag.objects.annotate(num_posts=Count('posts'))
-    popular_tags = tags.order_by('-num_posts')
-    most_popular_tags = popular_tags[:5]
+    most_popular_tags = Tag.objects.popular()[:5]
 
     context = {
         'most_popular_posts': [
