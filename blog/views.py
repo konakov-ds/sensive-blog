@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from blog.models import Comment, Post, Tag
-from django.db.models import Count
+from django.db.models import Count, Q
 
 
 def serialize_post(post):
@@ -39,21 +39,31 @@ def serialize_tag(tag):
     }
 
 
-def index(request):
-    fresh_posts = Post.objects.order_by('-published_at')\
-        .prefetch_related('author')\
-        .annotate(
-        num_comments=Count('comments', distinct=True),
-    )
-    most_fresh_posts = fresh_posts[:5]
+def assign_comments_count(posts):
+    posts_ids = [post.id for post in posts]
+    posts_with_comments = Post.objects.filter(id__in=posts_ids) \
+        .annotate(num_comments=Count('comments'))
+    ids_and_comments = dict(posts_with_comments.values_list('id', 'num_comments'))
+    for post in posts:
+        post.num_comments = ids_and_comments[post.id]
 
-    popular_posts = Post.objects.prefetch_related('author')\
+
+def index(request):
+    popular_posts = Post.objects.prefetch_related('author') \
         .annotate(
         num_likes=Count('likes', distinct=True),
-        num_comments=Count('comments', distinct=True),
     ).order_by('-num_likes')
+
     most_popular_posts = popular_posts[:5]
-   
+    assign_comments_count(most_popular_posts)
+
+    fresh_posts = Post.objects.order_by('-published_at').prefetch_related('author')
+    most_fresh_posts = fresh_posts[:5]
+    assign_comments_count(most_fresh_posts)
+    # most_fresh_posts = most_fresh_posts.annotate(
+    #     num_comments=Count('comments', distinct=True),
+    # )
+
     tags = Tag.objects.annotate(num_posts=Count('posts'))
     popular_tags = tags.order_by('-num_posts')
     most_popular_tags = popular_tags[:5]
@@ -71,7 +81,7 @@ def index(request):
 def post_detail(request, slug):
     post = Post.objects.get(slug=slug)
     #comments = Comment.objects.filter(post=post)
-    comments = post.comments
+    comments = post.comments.all()
     serialized_comments = []
     for comment in comments:
         serialized_comments.append({
