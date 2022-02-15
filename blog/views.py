@@ -49,20 +49,12 @@ def assign_comments_count(posts):
 
 
 def index(request):
-    popular_posts = Post.objects.prefetch_related('author') \
-        .annotate(
-        num_likes=Count('likes', distinct=True),
-    ).order_by('-num_likes')
-
-    most_popular_posts = popular_posts[:5]
-    assign_comments_count(most_popular_posts)
+    most_popular_posts = Post.objects.prefetch_related('author')\
+    .popular()[:5].fetch_with_comments_count()
 
     fresh_posts = Post.objects.order_by('-published_at').prefetch_related('author')
     most_fresh_posts = fresh_posts[:5]
     assign_comments_count(most_fresh_posts)
-    # most_fresh_posts = most_fresh_posts.annotate(
-    #     num_comments=Count('comments', distinct=True),
-    # )
 
     most_popular_tags = Tag.objects.popular()[:5]
 
