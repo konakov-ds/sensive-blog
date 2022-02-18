@@ -78,7 +78,10 @@ def post_detail(request, slug):
 
     most_popular_tags = Tag.objects.popular()[:5]
 
-    most_popular_posts = []  # TODO. Как это посчитать?
+    most_popular_posts = Post.objects.popular()[:5]\
+        .fetch_tags_with_posts_count()\
+        .select_related('author')\
+        .fetch_with_comments_count()
 
     context = {
         'post': serialized_post,
