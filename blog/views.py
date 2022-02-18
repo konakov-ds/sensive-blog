@@ -48,7 +48,7 @@ def index(request):
 
 def post_detail(request, slug):
     post = Post.objects\
-        .prefetch_related('author')\
+        .select_related('author')\
         .get(slug=slug)
     comments = Comment.objects.filter(post=post)\
         .prefetch_related('author')
